@@ -1,0 +1,11 @@
+LIBRARY ircify
+EXPORTS
+NowPlaying @1
+dock @2
+ChkTrack @3
+ChkStatus @4
+Lookup @5
+Version @6
+Debug @7
+Cmd @8
+GetCurrVol @9
