@@ -69,8 +69,9 @@ int Status()
 	int sngnfo = GetSongInfo(&t, 0);
 
 	if (t.SpInfo.Running) {
-		if (t.SpInfo.Playing)
+		if (t.SpInfo.Playing) {
 			return 1;
+		}
 		else {
 			return 2;
 		}
