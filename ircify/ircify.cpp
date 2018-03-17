@@ -1,4 +1,4 @@
-/* 
+/*
 This is free and unencumbered software released into the public domain.
 
 Anyone is free to copy, modify, publish, use, compile, sell, or
@@ -24,7 +24,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 For more information, please refer to <http://unlicense.org/>
 */
-	 
+
 #define _WIN32_WINNT _WIN32_WINNT_WINXP  //make everything XP compatible
 #include "ircify.h"
 
@@ -41,6 +41,44 @@ int GetAndSetPort();
 int GetAndSetPort() {
 	mEval("%ircify.port", webhelperport, 5);
 	return SetConnectPort(atoi(webhelperport));
+}
+
+IRCIFY_API ChkStatus(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
+{
+	MircHwnd = mwnd;
+	GetAndSetPort();
+	switch (Status())
+	{
+	case 0:
+		sprintf_s(data, 300, "0");
+		break;
+	case 1:
+		sprintf_s(data, 300, "1");
+		break;
+	case 2:
+		sprintf_s(data, 300, "2");
+		break;
+	}
+	return 3;
+}
+
+int Status()
+{
+	TRACKINFO t = { 0 };
+	memset(&t, 0, sizeof(TRACKINFO));
+	int sngnfo = GetSongInfo(&t, 0);
+
+	if (t.SpInfo.Running) {
+		if (t.SpInfo.Playing)
+			return 1;
+		else {
+			return 2;
+		}
+	}
+	else {
+		return 0;
+	}
+	return -1;
 }
 BOOLEAN WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID Reserved)
 {
@@ -64,7 +102,6 @@ BOOLEAN WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID Reserved)
 			hMircFileMap = CreateFileMapping(INVALID_HANDLE_VALUE, 0, PAGE_READWRITE, 0, 1024, L"mIRC");
 			sMircData = (LPSTR)MapViewOfFile(hMircFileMap, FILE_MAP_ALL_ACCESS, 0, 0, 0);
 		}
-		GetAndSetPort();
 		break;
 
 	case DLL_PROCESS_DETACH:
@@ -85,23 +122,6 @@ BOOLEAN WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID Reserved)
 	return TRUE;
 }
 
-IRCIFY_API ChkStatus(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
-{
-	switch (Status())
-	{
-	case 0:
-		sprintf_s(data, 300, "0");
-		break;
-	case 1:
-		sprintf_s(data, 300, "1");
-		break;
-	case 2:
-		sprintf_s(data, 300, "2");
-		break;
-	}
-
-	return 3;
-}
 IRCIFY_API dock(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	int safteybreak = 0;
@@ -157,6 +177,8 @@ IRCIFY_API ChkTrack(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 }
 IRCIFY_API NowPlaying(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
+	MircHwnd = mwnd;
+	GetAndSetPort();
 	BOOL DoMetadataLookup = true;
 	if (Status() != 1) return 1; // Just return and halt if spotify is not playing or not running.
 
@@ -165,8 +187,6 @@ IRCIFY_API NowPlaying(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 			DoMetadataLookup = false;
 	}
 
-	MircHwnd = mwnd;
-	GetAndSetPort();
 	TRACKINFO ti = { 0 };
 	memset(&ti, 0, sizeof(TRACKINFO)); //make sure its nulled every time!
 
@@ -175,11 +195,7 @@ IRCIFY_API NowPlaying(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 		return 1;
 	}
 	if (ti.tracktype == 2) return 1;
-	if (sngnfo == -5) {				// -5 = private session, which means no data to gather.. so get the titlebar instead..
-		internalsong(&ti);
-		CreateOutput(data, 0, &ti);
-		return 3;
-	}
+
 	if ((ti.tracktype == 0) || (ti.tracktype == 1)) {
 		CreateOutput(data, 0, &ti);
 	}
@@ -259,7 +275,8 @@ IRCIFY_API Cmd(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 	// all the commands below are part of the LookupApi Library,
 	// check the SpotifyLookupApi.h for avalable commands
 	if (strlen(data) > 1) {
-		if (!strcmp(data, "PlayPause"))
+		//all the "Cmds" commented out no longer work...
+/*		if (!strcmp(data, "PlayPause"))
 			PlayPause();
 		else if (!strcmp(data, "Next"))
 			NextTrack();
@@ -271,7 +288,7 @@ IRCIFY_API Cmd(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 			VolumeDown();
 		else if (!strcmp(data, "ShuffleToggle"))
 			ShuffleToggle();
-		else if (strstr(data, "spotify:track:"))
+		else*/ if (strstr(data, "spotify:track:"))
 			PlayURI(data, 0);
 	}
 	return 1;
@@ -412,7 +429,7 @@ int CreateOutput(char *out, int type, TRACKINFO *ti)
 				strcat_s(CoArtistTmp, ti->artist[i]);
 			} while (i < 5);
 
-			if (ti->coartists>4)
+			if (ti->coartists > 4)
 				strcat_s(CoArtistTmp, "...");
 
 			OutputData.replace(OutputData.find(".coartists."), 11, CoArtistTmp);
@@ -444,47 +461,6 @@ int CreateOutput(char *out, int type, TRACKINFO *ti)
 	return 1;
 }
 
-int Status()
-{
-	WCHAR buf[900];
-	HWND spothwnd;
-	spothwnd = FindWindow(L"SpotifyMainWindow", NULL);
-
-	GetWindowText(spothwnd, buf, 900);
-
-	if (lstrlen(buf) == 7) {	//pause
-		return 2;
-	}
-	else if (spothwnd) {		//playing
-		return 1;
-	}
-	else {					//spotify not running
-		return 0;
-	}
-
-	return -1;					//will never get here!
-}
-int internalsong(TRACKINFO *ti)
-{
-	HWND spothwnd = FindWindow(L"SpotifyMainWindow", NULL);
-
-	WCHAR buf[900] = { 0 };
-	char *buf2;
-
-	GetWindowText(spothwnd, buf, 900);	// get the unicode titlebar
-
-	buf2 = _UTF16ToUTF8(buf);	// convert the text to utf8 so it will work on any version of mirc..
-
-	char *pch = strstr(buf2, "–");			// Split the titlebar text up into song and artist, thats not a normal - its ascii 150 – !
-	if (pch)
-		lstrcpyA(ti->name, pch + 4);
-
-	pch = strstr(buf2, "–");
-	if (pch)
-		lstrcpynA(ti->artist[0], buf2 + 10, (pch - buf2) - 10);
-	delete buf2;	//delete the char array generated by the convert func..
-	return 1;
-}
 int convert_time(char *out, int sec) {
 	if (sec < 1) { sprintf_s(out, 30, "00:00"); return 1; }
 
@@ -533,27 +509,3 @@ void mEval(const char * data, char * res, int maxlen)
 	LeaveCriticalSection(&CriticalSection);
 }
 //////////////////////////////
-
-// No idea why i did this like this..
-// But CRCing the current track to to save in mIrc.. It just seemed like a neat way to do it..
-// Standard implementation of crc32
-
-// I do not know where i got this function.
-// I found it YEARS ago on google, and can not find the code again now.
-// If anyone knows where it comes from, or wants credit for it, let me know and i will be happy to add it!
-char* _UTF16ToUTF8(wchar_t * pszTextUTF16) {
-	if ((pszTextUTF16 == NULL) || (*pszTextUTF16 == L'\0')) {
-		return 0;
-	}
-	int cchUTF16;
-	cchUTF16 = wcslen(pszTextUTF16) + 1;
-	int cbUTF8 = WideCharToMultiByte(CP_UTF8, 0, pszTextUTF16, cchUTF16, NULL, 0, NULL, NULL);
-	if (!cbUTF8) { return "ERROR"; }
-	char *strUTF8 = new char[cbUTF8], *pszUTF8 = strUTF8;
-	int result = WideCharToMultiByte(CP_UTF8, 0, pszTextUTF16, cchUTF16, pszUTF8, cbUTF8, NULL, NULL);
-
-	if (result)
-		return strUTF8;
-	else
-		return "ERROR";
-}

@@ -44,8 +44,7 @@ extern  void mEval(const char * data, char * res, int maxlen);
 
 extern int CreateOutput(char *out, int type, TRACKINFO *ct);
 extern int Status();
-extern int internalsong(TRACKINFO *ti);
 extern int convert_time(char *out, int sec);
 
-extern char* _UTF16ToUTF8(wchar_t * pszTextUTF16);
+
 #endif
