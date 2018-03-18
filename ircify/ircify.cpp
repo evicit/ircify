@@ -70,17 +70,18 @@ int Status()
 
 	if (t.SpInfo.Running) {
 		if (t.SpInfo.Playing) {
-			return 1;
+			return 1; //playing
 		}
 		else {
-			return 2;
+			return 2; //paused
 		}
 	}
 	else {
-		return 0;
+		return 0; //spotify not running
 	}
-	return -1;
+	return -1; //This should never happen
 }
+
 BOOLEAN WINAPI DllMain(HINSTANCE hDllHandle, DWORD nReason, LPVOID Reserved)
 {
 	switch (nReason)
@@ -143,6 +144,7 @@ IRCIFY_API dock(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 	}
 	return 1;
 }
+
 IRCIFY_API ChkTrack(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	MircHwnd = mwnd;
@@ -176,6 +178,7 @@ IRCIFY_API ChkTrack(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 	sprintf_s(data, 300, "0");
 	return 3;
 }
+
 IRCIFY_API NowPlaying(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	MircHwnd = mwnd;
@@ -202,6 +205,7 @@ IRCIFY_API NowPlaying(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 	}
 	return 3;
 }
+
 IRCIFY_API Lookup(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	MircHwnd = mwnd;
@@ -213,11 +217,13 @@ IRCIFY_API Lookup(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 	CreateOutput(data, 1, &ti);
 	return 3;
 }
+
 IRCIFY_API Version(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	sprintf_s(data, 300, "Lib:%x-Dll:%s", LookupVersion(), GitStr);
 	return 3;
 }
+
 IRCIFY_API Debug(HWND mwnd, HWND awnd, char data[300], char*, BOOL, BOOL)
 {
 	MircHwnd = mwnd;
